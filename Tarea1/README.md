@@ -23,4 +23,4 @@ y se transformo a numerico en formato float.
 
 
 ## intepretacion concisa de los resultados
-El dataset resultante cuenta con integridad referencial (sin IDs nulos) y consistencia numérica. Al asumir los gastos nulos como 0.00, se evita sesgar el promedio de ventas hacia arriba, ofreciendo una visión realista de la facturación que incluye a los usuarios inactivos o que solo se registraron sin comprar.
+El dataset resultante cuenta con integridad referencial (sin IDs nulos) y consistencia numérica. Al asumir los gastos nulos como 0.00, se evita sesgar el promedio de ventas hacia arriba, ofreciendo una visión realista de la facturación que incluye a los usuarios inactivos o que solo se registraron sin comprar, ademas se definio estandares de fechas y nombres para mantener los datos correctamente escritos.
