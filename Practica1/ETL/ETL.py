@@ -1,6 +1,6 @@
 import pandas as pd
 
-df_vuelos= pd.read_csv('/home/joshipanda2002/Descargas/CURSOS SEMESTRE/SEMI2/SS21S2026_202112012/Practica1/ETL/dataset_vuelos_crudo(1).csv')
+df_vuelos= pd.read_csv('C:\\Users\\edgar\\Downloads\\SA_FASE2\\SEMINARIOXD\\SS21S2026_202112012\\Practica1\\ETL\\dataset_vuelos_crudo(1).csv')
 
 print("transformacion")
 
