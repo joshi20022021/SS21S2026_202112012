@@ -28,5 +28,35 @@ Uno de los retos técnicos más importantes del diseño fue el manejo de atribut
 * **Roles Geográficos:** Se creó una única tabla `Dim_Aeropuerto` con el catálogo maestro de códigos. La tabla de hechos se conecta a esta dimensión a través de dos llaves foráneas distintas: `id_aeropuerto_origen` e `id_aeropuerto_destino`.
 * **Roles Temporales:** Se generó una sola dimensión calendario (`Dim_Tiempo`) que descompone las fechas en Año, Trimestre, Mes y Día. Posteriormente, la tabla de hechos hace referencia a esta misma dimensión en tres momentos distintos del ciclo de vida del vuelo: `id_fecha_salida`, `id_fecha_llegada` e `id_fecha_reserva`.
 
-### Conclusión del Diseño
-El resultado final es un modelo lógico y físico robusto, escalable y libre de anomalías de actualización. La arquitectura dimensional lograda asegura que el motor de SQL Server pueda resolver agregaciones complejas en tiempos de respuesta mínimos, estableciendo una base sólida para la Inteligencia de Negocios y la futura creación de cubos OLAP.
+## Documentación del Proceso ETL (Extracción, Transformación y Carga)
+
+El proceso ETL fue desarrollado en **Python**, utilizando la librería **Pandas** para la manipulación de datos en memoria y **SQLAlchemy** junto con `pyodbc` para la orquestación y conexión con el motor de base de datos SQL Server (alojado en un contenedor de Docker). 
+
+El flujo de trabajo se divide en las siguientes tres fases principales:
+
+### Fase 1: Extracción (Extract)
+La extracción de los datos se realiza desde una fuente plana. Se lee el archivo origen `dataset_vuelos_crudo(1).csv` utilizando la función `pd.read_csv()` de Pandas, cargando la totalidad de los registros transaccionales en un DataFrame (estructura de datos tabular en memoria) para su posterior procesamiento.
+
+### Fase 2: Transformación (Transform)
+Esta es la fase crítica de limpieza y estandarización, diseñada para garantizar la calidad del dato (Data Quality) antes de ingresarlo al Data Warehouse. Se aplicaron las siguientes reglas de negocio:
+
+* **Manejo de Nulos Ocultos:** Se implementó una expresión regular (`r'^\s*$'`) para identificar celdas que visualmente estaban vacías o contenían espacios en blanco, convirtiéndolas en verdaderos valores nulos (`NaN`) para que el sistema pudiera procesarlas.
+* **Estandarización de Texto:** Los códigos de los aeropuertos (origen y destino) y los géneros se limpiaron de espacios residuales y se forzaron a letras mayúsculas (`.str.upper()`). Los nombres de las aerolíneas se formatearon a *Title Case* (Letra inicial mayúscula).
+* **Conversión de Tipos de Datos (Casting):** Los valores monetarios (`ticket_price` y `ticket_price_usd_est`) que venían con formato europeo (comas en lugar de puntos decimales) fueron limpiados y casteados al tipo numérico `float`.
+* **Estandarización Temporal:** Las columnas de fechas presentaban formatos mixtos (ej. sistemas de 12h y 24h). Se utilizó `pd.to_datetime(format='mixed')` para unificar todas las fechas bajo el estándar internacional `YYYY-MM-DD HH:MM:SS`.
+* **Imputación de Datos Faltantes:** * Los valores nulos en columnas categóricas (`passenger_nationality`, `sales_channel`, `seat`) se rellenaron con la etiqueta descriptiva `'Unknown'`.
+  * Las edades faltantes (`passenger_age`) se sustituyeron por la **mediana** de las edades existentes para no sesgar la distribución estadística.
+  * Los minutos de duración y retraso faltantes se imputaron con un valor numérico de `0`.
+* **Auditoría:** Como paso final de esta fase, se generó un archivo de auditoría (`dataset_vuelos_transformado.xlsx`) para verificar la calidad de la limpieza antes de la inserción en base de datos.
+
+### Fase 3: Carga (Load)
+La carga hacia la base de datos `Vuelos_DW` en SQL Server se ejecutó respetando la integridad referencial del modelo de Esquema en Estrella, dividida en dos etapas secuenciales:
+
+1. **Carga de Dimensiones (Catálogos):**
+   Se extrajeron los valores únicos (`drop_duplicates()`) del DataFrame maestro para cada entidad (Aeropuertos, Aerolíneas, Pasajeros, Canales y Cabinas). Se renombraron las columnas para coincidir exactamente con la estructura de la base de datos y se insertaron mediante `.to_sql()`. Destaca la `Dim_Tiempo`, la cual fue descompuesta algorítmicamente en atributos de Año, Trimestre, Mes, Día y Hora directamente desde Python. En este paso, SQL Server generó automáticamente las *Surrogate Keys* (IDs numéricos) para cada registro.
+
+2. **Carga de la Tabla de Hechos (`Fact_Vuelos`):**
+   Dado que el Data Warehouse utiliza llaves foráneas numéricas en lugar de textos, se realizó un mapeo de datos:
+   * Se consultaron los catálogos recién creados desde SQL Server hacia la memoria de Python (`pd.read_sql`).
+   * Se utilizaron cruces lógicos (`pd.merge`) equivalentes a *LEFT JOINs* para reemplazar los textos del CSV original por los IDs numéricos generados por la base de datos.
+   * Finalmente, se filtró el DataFrame para contener exclusivamente llaves foráneas y métricas cuantitativas, insertando el lote completo en la tabla `Fact_Vuelos`.
