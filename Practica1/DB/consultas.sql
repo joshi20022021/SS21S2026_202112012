@@ -1,3 +1,20 @@
+SELECT 'Fact_Vuelos' AS Tabla, COUNT(*) AS Total_Registros FROM Fact_Vuelos
+UNION ALL
+SELECT 'Dim_Aerolinea', COUNT(*) FROM Dim_Aerolinea
+UNION ALL
+SELECT 'Dim_Aeropuerto', COUNT(*) FROM Dim_Aeropuerto
+UNION ALL
+SELECT 'Dim_Cabina', COUNT(*) FROM Dim_Cabina
+UNION ALL
+SELECT 'Dim_Canal', COUNT(*) FROM Dim_Canal
+UNION ALL
+SELECT 'Dim_Pasajero', COUNT(*) FROM Dim_Pasajero
+UNION ALL
+SELECT 'Dim_Tiempo', COUNT(*) FROM Dim_Tiempo
+ORDER BY Total_Registros DESC;
+
+SELECT * FROM Fact_Vuelos;
+SELECT * FROM Dim_Tiempo;
 -- Validar el número total de registros cargados en la tabla de hechos
 SELECT COUNT(*) AS Total_Registros_Cargados 
 FROM Fact_Vuelos;
