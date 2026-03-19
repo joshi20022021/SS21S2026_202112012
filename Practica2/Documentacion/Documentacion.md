@@ -6,3 +6,5 @@
 ## Carnet: 202112012
 
 # Documentacion - Practica 2
+
+Descripcion de graficas
